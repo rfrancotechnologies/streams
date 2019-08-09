@@ -1,4 +1,4 @@
-namespace Streams
+namespace Com.RFranco.Streams
 {
     /// <summary>
     /// An error occured during the streaming process.

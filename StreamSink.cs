@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Streams
+namespace Com.RFranco.Streams
 {
     /// <summary>
     /// A sink of messages. Sinks receive streams of messages and dump them into some output (like ElasticSearch, some Kafka topic or a CSV file).

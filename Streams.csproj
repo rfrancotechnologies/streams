@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard1.0</TargetFramework>
-    <Version>0.1.1-alpha</Version>
+    <Version>0.1.2-alpha</Version>
     <PackageId>Com.RFranco.Streams</PackageId>
     <Title>Streams</Title>
     <Description>A very simple stream processing library.</Description>
@@ -13,7 +13,7 @@
     <PackageProjectUrl>https://github.com/rfrancotechnologies/streams</PackageProjectUrl>
     <IncludeSource>false</IncludeSource>
     <PackageReleaseNotes>
-      First version
+      Corrected namespace and added possibility to stop event sources via a CancellationToken.
     </PackageReleaseNotes>
   </PropertyGroup>
 

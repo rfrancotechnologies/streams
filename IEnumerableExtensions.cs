@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Streams
+namespace Com.RFranco.Streams
 {
     public static class IEnumerableExtensions
     {

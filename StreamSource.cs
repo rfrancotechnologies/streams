@@ -1,7 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
-namespace Streams
+namespace Com.RFranco.Streams
 {
     /// <summary>
     /// Source of messages. Sources are able to produce a bounded or unbounded IEnumerable of messages.
@@ -13,7 +14,7 @@ namespace Streams
         /// Retrieves the stream of messages from the source.
         /// </summary>
         /// <returns>IEnuerable of messages of type T.</returns>
-        IEnumerable<T> Stream();
+        IEnumerable<T> Stream(CancellationToken cancellationToken);
 
         /// <summary>
         /// Event invoked each time the source reaches the end. For instance, each time a Kafka sources reaches
