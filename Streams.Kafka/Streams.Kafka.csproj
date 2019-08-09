@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Com.RFranco.Streams" Version="0.1.2-alpha" />
+    <PackageReference Include="Com.RFranco.Streams" Version="0.1.7-alpha" />
     <PackageReference Include="Confluent.Kafka" Version="1.1.0" />
   </ItemGroup>
 

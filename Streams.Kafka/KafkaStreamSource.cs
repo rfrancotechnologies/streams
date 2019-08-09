@@ -9,6 +9,7 @@ namespace Com.RFranco.Streams.Kafka
         private readonly ConsumerConfig consumerConfig;
         private readonly string topic;
         private readonly IDeserializer<T> valueDeserializer;
+        private IConsumer<Null, T> kafkaConsumer;
 
         public KafkaStreamSource(ConsumerConfig consumerConfig, string topic, IDeserializer<T> valueDeserializer)
         {
@@ -20,8 +21,15 @@ namespace Com.RFranco.Streams.Kafka
         public event Action OnEOF;
         public event Action<StreamingError> OnError;
 
+        public void Commit()
+        {
+            kafkaConsumer?.Commit();
+        }
+
         public System.Collections.Generic.IEnumerable<T> Stream(CancellationToken cancellationToken)
         {
+            consumerConfig.EnablePartitionEof = true;
+
             var kafkaConsumerBuilder = new ConsumerBuilder<Null, T>(consumerConfig);
             kafkaConsumerBuilder.SetKeyDeserializer(Deserializers.Null);
             kafkaConsumerBuilder.SetValueDeserializer(valueDeserializer);
@@ -29,6 +37,7 @@ namespace Com.RFranco.Streams.Kafka
             
             using (var kafkaConsumer = kafkaConsumerBuilder.Build())
             {
+                this.kafkaConsumer = kafkaConsumer;
                 kafkaConsumer.Subscribe(topic);
 
                 while (!cancellationToken.IsCancellationRequested)

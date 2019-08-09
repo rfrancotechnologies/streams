@@ -17,13 +17,6 @@ IStreamSource<string> source = ...;
 // Some stream sink like a Kafka topic, ElasticSearch, etc.
 IStreamSink<Tuple<int, string>> sink = ...;
 
-// Sinks are expected to work with batches of messages, for efficiency.
-// When MaxBatchSize of messages is reached, the batch will be effectively dumped into the sink.
-sink.MaxBatchSize = 1000;
-// If the timeout is reached, even if the number of messages has not reached MaxBatchSize, the
-// batch will be effectively dumped into the sink.
-sink.BatchTimeout = TimeSpan.FromSeconds(10);
-
 // Sources can be committed (that is, the can be specified that the messages up
 // to a certain point have been correctly processed and don't have to be provided
 // again).
