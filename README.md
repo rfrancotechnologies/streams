@@ -22,7 +22,7 @@ IStreamSink<Tuple<int, string>> sink = ...;
 sink.MaxBatchSize = 1000;
 // If the timeout is reached, even if the number of messages has not reached MaxBatchSize, the
 // batch will be effectively dumped into the sink.
-sink.MaxBatchSize = TimeSpan.FromSeconds(10);
+sink.BatchTimeout = TimeSpan.FromSeconds(10);
 
 // Sources can be committed (that is, the can be specified that the messages up
 // to a certain point have been correctly processed and don't have to be provided
