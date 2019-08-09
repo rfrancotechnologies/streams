@@ -8,5 +8,10 @@ namespace Com.RFranco.Streams
         {
             sink.Dump(enumerable);
         }
+
+        public static void Dump<K, T>(this IEnumerable<KeyValuePair<K, T>> enumerable, IKeyedStreamSink<K, T> sink)
+        {
+            sink.DumpWithKey(enumerable);
+        }
     }
 }

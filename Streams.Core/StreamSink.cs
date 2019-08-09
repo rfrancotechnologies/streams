@@ -38,4 +38,19 @@ namespace Com.RFranco.Streams
         /// </summary>
         TimeSpan BatchTimeout { get; set; }
     }
+
+    /// <summary>
+    /// Sinks that accept messages with keys.
+    /// </summary>
+    /// <typeparam name="K">The type of the message keys.</typeparam>
+    /// <typeparam name="T">The type of the messages that the sink is able to process.</typeparam>
+    public interface IKeyedStreamSink<K, T>: IStreamSink<T>
+    {
+        /// <summary>
+        /// Dump the stream into the sink using the key, from the provided KeyValuePair, as message key for the sink.
+        /// For instance, a Kafka message with a key or a ElasticSearch document with a specific UID.
+        /// </summary>
+        /// <param name="stream">Stream that will be dumped into the sink.</param>
+        void DumpWithKey(IEnumerable<KeyValuePair<K,T>> stream);
+    }
 }

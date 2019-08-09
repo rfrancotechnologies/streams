@@ -92,3 +92,13 @@ IStreamSource<string> source = ...;
 source.OnEOF += StartGrpcServer;
 source.Stream(cancellationTokenSource.Token)...
 ```
+
+### Sinks that Support Keys
+
+Some message sinks, like Kafka or ElasticSearch support specfying a key for your messages. For this purpose `Com.RFranco.Streams` provides a specialization of `IStreamSink<T>`: `IKeyedStreamSink<K, T>`.
+
+`IKeyedStreamSink<K, T>` provides a `DumpWithKey(IEnumerable<KeyValuePair<K,T>> stream)` that allows the user to dump messages by providing a specific key for each message.
+
+```csharp
+source.Stream(cancellationTokenSource.Token).Select(word => new KeyValuePair<string, int>(word, word.size())).DumpWithKey(sink);
+```
