@@ -99,10 +99,10 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// <exception cref="ChangeTrackingDisabledException">Thrown when change tracking is not enabled for the database.</exception>
         public long GetDatabaseOffset(IDbConnection conn)
         {
-            var databaseOffset = conn.Query<long>("SELECT CHANGE_TRACKING_CURRENT_VERSION() AS CurrentOffset").SingleOrDefault();
-            if (default(long) == databaseOffset) throw new ChangeTrackingDisabledException("Change tracking is not enabled for the database configured");
+            var databaseOffset = conn.Query<long?>("SELECT CHANGE_TRACKING_CURRENT_VERSION() AS CurrentOffset").SingleOrDefault();
+            if (!databaseOffset.HasValue) throw new ChangeTrackingDisabledException("Change tracking is not enabled for the database configured");
 
-            return databaseOffset;
+            return databaseOffset.Value;
         }
 
         /// <summary>

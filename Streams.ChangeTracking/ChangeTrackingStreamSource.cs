@@ -101,55 +101,57 @@ namespace Com.Rfranco.Streams.ChangeTracking
         public IEnumerable<Change> Stream(CancellationToken cancellationToken)
         {
             long databaseOffset = 0;
+            IDbConnection conn = null;
             TimeSpan pollingInterval = TimeSpan.FromMilliseconds(Configuration.PollIntervalMilliseconds);
             Stopwatch processTime = Stopwatch.StartNew();
             IEnumerable<Change> changes = null;
             long? applicationOffset = ChangeTrackingState.Value();
             while (!cancellationToken.IsCancellationRequested)
             {
-                using (IDbConnection conn = CreateConnection())
+                try
                 {
-                    try
+                    conn = CreateConnection();
+
+                    processTime.Restart();
+                    databaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
+
+                    if (!applicationOffset.HasValue || databaseOffset > applicationOffset)
                     {
-                        processTime.Restart();
-                        databaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
-                        
-                        if (!applicationOffset.HasValue|| databaseOffset > applicationOffset)
+                        changes = ChangeTrackingManager.GetChanges(conn, applicationOffset);
+                        EOFActionAlreadyThrown = false;
+                    }
+                    else
+                    {
+                        if (!EOFActionAlreadyThrown)
                         {
-                            changes = ChangeTrackingManager.GetChanges(conn, applicationOffset);
-                            EOFActionAlreadyThrown = false;
-                        }
-                        else
-                        {
-                            if (!EOFActionAlreadyThrown)
-                            {
-                                OnEOF?.Invoke();
-                                EOFActionAlreadyThrown = true;
-                                changes = null;
-                            }
+                            OnEOF?.Invoke();
+                            EOFActionAlreadyThrown = true;
+                            changes = null;
                         }
                     }
-                    catch (Exception cte)
-                    {
-                        OnError?.Invoke(new StreamingError { IsFatal = cte is ChangeTrackingException, Reason = cte.Message });
-                    }
-
-                    if (null != changes)
-                    {
-                        foreach (var change in changes)
-                        {
-                            yield return change;
-                        }
-                        ChangeTrackingState.Update(databaseOffset);
-                        applicationOffset = databaseOffset;
-                    }
-
-                    processTime.Stop();
-
-                    var sleep = pollingInterval - processTime.Elapsed;
-                    if (sleep.TotalMilliseconds > 0)
-                        Thread.Sleep(sleep);
                 }
+                catch (Exception cte)
+                {
+                    OnError?.Invoke(new StreamingError { IsFatal = cte is ChangeTrackingException, Reason = cte.Message });
+                    changes = null;
+                }
+
+                if (null != changes)
+                {
+                    foreach (var change in changes)
+                    {
+                        yield return change;
+                    }
+                    ChangeTrackingState.Update(databaseOffset);
+                    applicationOffset = databaseOffset;
+                }
+                if(conn != null) conn.Dispose();
+                processTime.Stop();
+
+                var sleep = pollingInterval - processTime.Elapsed;
+                if (sleep.TotalMilliseconds > 0)
+                    Thread.Sleep(sleep);
+
             }
 
             ChangeTrackingState.Close();
