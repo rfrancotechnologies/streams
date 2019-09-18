@@ -19,6 +19,8 @@ namespace Com.RFranco.Streams.Kafka
         private readonly string topic;
         private System.Timers.Timer dumpTimer;
 
+        private int NumMessagesInBatch;
+
         public KafkaStreamSink(ProducerConfig producerConfig, string topic, ISerializer<K> keySerializer, ISerializer<T> valueSerializer)
         {
             this.producerConfig = producerConfig;
@@ -26,6 +28,7 @@ namespace Com.RFranco.Streams.Kafka
             this.keySerializer = keySerializer;
             this.valueSerializer = valueSerializer;
             this.CommitTimeout = TimeSpan.FromSeconds(5);
+            this.NumMessagesInBatch = 0;
         }
 
         /// <summary>
@@ -55,13 +58,21 @@ namespace Com.RFranco.Streams.Kafka
             using (var p = producerBuilder.Build())
             {
                 SetupCommitTimer(() => {
-                    p.Flush(cancellationToken);
-                    sourceToCommit?.Commit();
+                    lock(p)
+                    {
+                        if(NumMessagesInBatch > 0) {
+                            p.Flush(cancellationToken);
+                            NumMessagesInBatch = 0;
+                            sourceToCommit?.Commit();
+                        }
+                    }
                 });
 
                 foreach(M message in messages)
                 {
-                    p.Produce(this.topic, 
+                    lock(p)
+                    {
+                        p.Produce(this.topic, 
                         getMessage.Invoke(message), 
                         r => {
                             if (r.Error.IsError)
@@ -69,6 +80,8 @@ namespace Com.RFranco.Streams.Kafka
                                 OnError?.Invoke(new StreamingError{ IsFatal = r.Error.IsFatal, Reason = r.Error.Reason });
                             }
                         });
+                        NumMessagesInBatch++;
+                    }                    
                 }
             }
         }
