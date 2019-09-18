@@ -57,7 +57,17 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// <summary>
         /// Changetracking state
         /// </summary>
-        State<long?> ChangeTrackingState;
+        private State<long?> ChangeTrackingState;
+
+        /// <summary>
+        /// State of database
+        /// </summary>
+        private long DatabaseOffset;
+
+        /// <summary>
+        /// Check if  initial status is not commited yet
+        /// </summary>
+        private bool IsPendingCommitInitial = false;
 
         /// <summary>
         /// Change tracking stream constructor
@@ -100,55 +110,71 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// <returns>IEnumerable of messages of type Change</returns>
         public IEnumerable<Change> Stream(CancellationToken cancellationToken)
         {
-            long databaseOffset = 0;
             IDbConnection conn = null;
             TimeSpan pollingInterval = TimeSpan.FromMilliseconds(Configuration.PollIntervalMilliseconds);
             Stopwatch processTime = Stopwatch.StartNew();
             IEnumerable<Change> changes = null;
-            long? applicationOffset = ChangeTrackingState.Value();
+            TimeSpan delay = TimeSpan.FromSeconds(0);
+            long? ApplicationOffset = ChangeTrackingState.Value();
+
             while (!cancellationToken.IsCancellationRequested)
             {
-                try
+                processTime.Restart();
+                
+                if (!IsPendingCommitInitial)
                 {
-                    conn = CreateConnection();
-
-                    processTime.Restart();
-                    databaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
-
-                    if (!applicationOffset.HasValue || databaseOffset > applicationOffset)
+                    try
                     {
-                        changes = ChangeTrackingManager.GetChanges(conn, applicationOffset);
-                        EOFActionAlreadyThrown = false;
-                    }
-                    else
-                    {
-                        if (!EOFActionAlreadyThrown)
+                        
+                        conn = CreateConnection();
+
+                        DatabaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
+
+                        if (!ApplicationOffset.HasValue || DatabaseOffset > ApplicationOffset)
                         {
-                            OnEOF?.Invoke();
-                            EOFActionAlreadyThrown = true;
-                            changes = null;
+                            changes = ChangeTrackingManager.GetChanges(conn, ApplicationOffset);
+                            EOFActionAlreadyThrown = false;
+                        }
+                        else
+                        {
+                            if (!EOFActionAlreadyThrown)
+                            {
+                                OnEOF?.Invoke();
+                                EOFActionAlreadyThrown = true;
+                                changes = null;
+                            }
                         }
                     }
-                }
-                catch (Exception cte)
-                {
-                    OnError?.Invoke(new StreamingError { IsFatal = cte is ChangeTrackingException, Reason = cte.Message });
-                    changes = null;
+                    catch (Exception cte)
+                    {
+                        OnError?.Invoke(new StreamingError { IsFatal = cte is ChangeTrackingException, Reason = cte.Message });
+                        changes = null;
+                        delay = delay.Add(TimeSpan.FromSeconds(5));
+                        if (delay > TimeSpan.FromSeconds(15))
+                            delay = TimeSpan.FromSeconds(15);
+                    }
+
+                    if (null != changes)
+                    {
+                        foreach (var change in changes)
+                        {
+                            yield return change;
+                            if (change.IsInitial())
+                            {
+                                IsPendingCommitInitial = true;
+                            }                            
+                        }
+                        
+                        ApplicationOffset = DatabaseOffset;
+                        delay = TimeSpan.FromSeconds(0);
+                    }
+
+                    if (conn != null) conn.Dispose();
                 }
 
-                if (null != changes)
-                {
-                    foreach (var change in changes)
-                    {
-                        yield return change;
-                    }
-                    ChangeTrackingState.Update(databaseOffset);
-                    applicationOffset = databaseOffset;
-                }
-                if(conn != null) conn.Dispose();
                 processTime.Stop();
 
-                var sleep = pollingInterval - processTime.Elapsed;
+                var sleep = (delay + pollingInterval) - processTime.Elapsed;
                 if (sleep.TotalMilliseconds > 0)
                     Thread.Sleep(sleep);
 
@@ -158,10 +184,12 @@ namespace Com.Rfranco.Streams.ChangeTracking
         }
 
         /// <summary>
-        /// Do nothing
+        /// Commit
         /// </summary>
         public void Commit()
         {
+            ChangeTrackingState.Update(DatabaseOffset);
+            IsPendingCommitInitial = false;
         }
 
         /// <summary>
