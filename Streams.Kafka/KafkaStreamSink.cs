@@ -54,6 +54,7 @@ namespace Com.RFranco.Streams.Kafka
             var producerBuilder = new ProducerBuilder<K, T>(producerConfig);
             producerBuilder.SetKeySerializer(keySerializer);
             producerBuilder.SetValueSerializer(valueSerializer);
+            producerBuilder.SetErrorHandler((_, e) => OnError?.Invoke(new StreamingError{ IsFatal = e.IsFatal, Reason = e.Reason }));
 
             using (var p = producerBuilder.Build())
             {
