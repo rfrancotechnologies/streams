@@ -13,7 +13,7 @@
     <PackageProjectUrl>https://github.com/rfrancotechnologies/streams-kafka</PackageProjectUrl>
     <IncludeSource>false</IncludeSource>
     <PackageReleaseNotes>
-      Setted Producer Error Handler
+      KafkaStreamSink updated to set the producer Error Handler
     </PackageReleaseNotes>    
   </PropertyGroup>
 
