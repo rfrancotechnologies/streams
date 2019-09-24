@@ -66,7 +66,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
             {
                 if (!applicationOffset.HasValue)
                 {
-                    yield return new Change();  //IsInitial() == true
+                    yield return new Change{TableFullName = changeTrackingTableInfo.GetFullTableName()};  
                 }
                 else
                 {
