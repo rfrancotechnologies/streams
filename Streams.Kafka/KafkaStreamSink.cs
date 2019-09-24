@@ -79,9 +79,10 @@ namespace Com.RFranco.Streams.Kafka
                             if (r.Error.IsError)
                             {
                                 OnError?.Invoke(new StreamingError{ IsFatal = r.Error.IsFatal, Reason = r.Error.Reason });
+                            } else {
+                                NumMessagesInBatch++;
                             }
                         });
-                        NumMessagesInBatch++;
                     }                    
                 }
             }
