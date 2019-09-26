@@ -158,11 +158,12 @@ namespace Com.Rfranco.Streams.ChangeTracking
                     {
                         foreach (var change in changes)
                         {
-                            yield return change;
                             if (change.IsInitial())
                             {
                                 IsPendingCommitInitial = true;
                             }                            
+                            
+                            yield return change;                            
                         }
                         
                         ApplicationOffset = DatabaseOffset;
