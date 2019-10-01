@@ -115,17 +115,16 @@ namespace Com.Rfranco.Streams.ChangeTracking
             Stopwatch processTime = Stopwatch.StartNew();
             IEnumerable<Change> changes = null;
             TimeSpan delay = TimeSpan.FromSeconds(0);
-            long? ApplicationOffset = ChangeTrackingState.Value();
-
+            long? ApplicationOffset = GetApplicationOffsetValue();
+            
             while (!cancellationToken.IsCancellationRequested)
             {
                 processTime.Restart();
-                
+
                 if (!IsPendingCommitInitial)
                 {
                     try
                     {
-                        
                         conn = CreateConnection();
 
                         DatabaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
@@ -161,11 +160,11 @@ namespace Com.Rfranco.Streams.ChangeTracking
                             if (change.IsInitial())
                             {
                                 IsPendingCommitInitial = true;
-                            }                            
-                            
-                            yield return change;                            
+                            }
+
+                            yield return change;
                         }
-                        
+
                         ApplicationOffset = DatabaseOffset;
                         delay = TimeSpan.FromSeconds(0);
                     }
@@ -203,6 +202,21 @@ namespace Com.Rfranco.Streams.ChangeTracking
             if (connection.State != ConnectionState.Open)
                 connection.Open();
             return connection;
+        }
+
+        private long? GetApplicationOffsetValue()
+        {
+            long? applicationOffset = null;
+            try
+            {
+                applicationOffset = ChangeTrackingState.Value();
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(new StreamingError { IsFatal = true, Reason = ex.Message });
+            }
+            
+            return applicationOffset;
         }
     }
 }
