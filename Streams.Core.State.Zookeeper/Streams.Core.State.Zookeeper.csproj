@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.1.0-alpha</Version>
+    <Version>0.1.1-alpha</Version>
     <PackageId>Com.RFranco.Streams.Core.State.Zookeeper</PackageId>
     <Title>Streams.Core.State.Zookeeper</Title>
     <Description>Library to manage application state using zookeeper.</Description>
@@ -13,7 +13,7 @@
     <PackageProjectUrl>https://github.com/rfrancotechnologies/streams</PackageProjectUrl>
     <IncludeSource>false</IncludeSource>
     <PackageReleaseNotes>
-      First version.
+      Throw exception if the connection to the server has been lost.
     </PackageReleaseNotes>
   </PropertyGroup>
 

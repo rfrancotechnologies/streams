@@ -58,8 +58,13 @@ namespace Com.RFranco.Streams.State.Zookeeper
                 offsetTask.Wait();
                 State = Descriptor.Serializer.Deserialize(offsetTask.Result.Data);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                KeeperException keeperException = ex.InnerException as KeeperException;
+                if (keeperException != null && keeperException.getCode() == KeeperException.Code.CONNECTIONLOSS)
+                {
+                    throw ex;
+                }
             }
 
             return State;
