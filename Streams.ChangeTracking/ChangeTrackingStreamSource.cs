@@ -193,6 +193,11 @@ namespace Com.Rfranco.Streams.ChangeTracking
             IsPendingCommitInitial = false;
         }
 
+        public long GetCurrentOffset()
+        {
+            return DatabaseOffset;
+        }
+
         /// <summary>
         /// Create a Database connection
         /// </summary>
@@ -203,7 +208,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
             if (connection.State != ConnectionState.Open)
                 connection.Open();
             return connection;
-        }
+        }       
 
         private long? GetApplicationOffsetValue()
         {
