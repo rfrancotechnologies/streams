@@ -141,6 +141,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
                                 OnEOF?.Invoke();
                                 EOFActionAlreadyThrown = true;
                                 changes = null;
+                                Commit();
                             }
                         }
                     }
@@ -162,9 +163,9 @@ namespace Com.Rfranco.Streams.ChangeTracking
                                 IsPendingCommitInitial = true;
                             }
 
-                            yield return change;
+                            yield return change;                            
                         }
-
+                        
                         ApplicationOffset = DatabaseOffset;
                         delay = TimeSpan.FromSeconds(0);
                     }
