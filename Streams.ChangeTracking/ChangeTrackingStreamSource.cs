@@ -193,6 +193,10 @@ namespace Com.Rfranco.Streams.ChangeTracking
             IsPendingCommitInitial = false;
         }
 
+        /// <summary>
+        /// Get current offset
+        /// </summary>
+        /// <returns>Current offset</returns>
         public long GetCurrentOffset()
         {
             return DatabaseOffset;
