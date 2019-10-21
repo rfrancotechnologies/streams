@@ -9,12 +9,14 @@ namespace Com.RFranco.Streams.Kafka
         private readonly ConsumerConfig consumerConfig;
         private readonly string topic;
         private readonly IDeserializer<T> valueDeserializer;
-        private IConsumer<Null, T> kafkaConsumer;
+        private readonly IDeserializer<K> keyDeserializer;
+        private IConsumer<K, T> kafkaConsumer;
 
-        public KafkaStreamSource(ConsumerConfig consumerConfig, string topic, IDeserializer<T> valueDeserializer)
+        public KafkaStreamSource(ConsumerConfig consumerConfig, string topic, IDeserializer<K> keyDeserializer, IDeserializer<T> valueDeserializer)
         {
             this.consumerConfig = consumerConfig;
             this.topic = topic;
+            this.keyDeserializer = keyDeserializer;
             this.valueDeserializer = valueDeserializer;
         }
 
@@ -30,8 +32,8 @@ namespace Com.RFranco.Streams.Kafka
         {
             consumerConfig.EnablePartitionEof = true;
 
-            var kafkaConsumerBuilder = new ConsumerBuilder<Null, T>(consumerConfig);
-            kafkaConsumerBuilder.SetKeyDeserializer(Deserializers.Null);
+            var kafkaConsumerBuilder = new ConsumerBuilder<K, T>(consumerConfig);
+            kafkaConsumerBuilder.SetKeyDeserializer(keyDeserializer);
             kafkaConsumerBuilder.SetValueDeserializer(valueDeserializer);
             kafkaConsumerBuilder.SetErrorHandler((_, e) => OnError?.Invoke(new StreamingError{ IsFatal = e.IsFatal, Reason = e.Reason }));
             
@@ -42,7 +44,7 @@ namespace Com.RFranco.Streams.Kafka
 
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    ConsumeResult<Null, T> consumedResult;
+                    ConsumeResult<K, T> consumedResult;
                     try
                     {
                         consumedResult = kafkaConsumer.Consume(cancellationToken);
