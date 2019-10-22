@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Nest;
-using Polly;
 
 namespace Com.RFranco.Streams.Elastic
 {
@@ -19,30 +18,12 @@ namespace Com.RFranco.Streams.Elastic
 
         private string Index;
 
-        private System.Timers.Timer dumpTimer;
-
-        private List<Message<T>> DataBuffer;
-
-
-        /// <summary>
-        /// When this timeout expires, the sink will wait for the Kafka producer to send
-        /// all the messages and will commit to the source. The default is 5 seconds.
-        /// </summary>
-        public TimeSpan BulkTimeout { get; set; }
-
         public event Action<StreamingError> OnError;
 
-        public ElasticStreamSink(IElasticClient elasticClient, string index, TimeSpan bulkTimeoutSeconds, long maxBufferSize = 1000)
+        public ElasticStreamSink(IElasticClient elasticClient, string index)
         {
             this.ElasticClient = elasticClient;
             this.Index = index;
-            this.BulkTimeout = bulkTimeoutSeconds;
-            this.DataBuffer = new List<Message<T>>();
-            
-            SetupCommitTimer(() =>
-                {
-                    DumpMessages();
-                });
         }
 
         public void Dump(IEnumerable<T> stream, CancellationToken cancellationToken)
@@ -50,12 +31,7 @@ namespace Com.RFranco.Streams.Elastic
             using (cancellationToken.Register(() => cancellationToken.ThrowIfCancellationRequested()))
             {
                 foreach (var data in stream.Select(s => new Message<T> { Value = s, Key = Guid.NewGuid().ToString() }))
-                {
-                    lock (DataBuffer)
-                    {
-                        DataBuffer.Add(data);
-                    }
-                }
+                    DumpMessage(data);
             }
         }
 
@@ -63,64 +39,30 @@ namespace Com.RFranco.Streams.Elastic
         {
             using (cancellationToken.Register(() => cancellationToken.ThrowIfCancellationRequested()))
             {
-               foreach (var data in stream.Select(s => new Message<T> { Value = s.Value, Key = s.Key.ToString() }))
-                {
-                    lock (DataBuffer)
-                    {
-                        DataBuffer.Add(data);
-                    }
-                }
-            }
-        }        
-
-        private void DumpMessages()
-        {
-            if (DataBuffer.Count() != 0)
-            {
-                lock (DataBuffer)
-                {
-                    Polly.Policy.Handle<Exception>().WaitAndRetryForever(retryAttempt =>
-                    {
-                        var delay = TimeSpan.FromMilliseconds(100 * Math.Pow(2, retryAttempt));
-                        if (delay > TimeSpan.FromSeconds(10))
-                            delay = TimeSpan.FromSeconds(10);
-                        return delay;
-                    })
-                    .Execute(() =>
-                    {
-                        var response = ElasticClient.Bulk(b => b.Index(Index)
-                        .IndexMany(DataBuffer, (descriptor, s) => descriptor.Index(Index).Id(s.Key)));
-
-                        if (!response.IsValid)
-                        {
-                            OnError?.Invoke(new StreamingError { Reason = response.OriginalException.Message, IsFatal = false });
-                            throw response.OriginalException;
-                        }
-
-                        DataBuffer.Clear();
-                    });
-                }
-
-                sourceToCommit?.Commit();
+                foreach (var data in stream.Select(s => new Message<T> { Value = s.Value, Key = s.Key.ToString() }))
+                    DumpMessage(data);
             }
         }
+
+        private void DumpMessage(Message<T> message)
+        {
+            var response = ElasticClient.Index(new IndexRequest<T>(message.Value, index: Index,
+                    type: typeof(T).Name, id: message.Key));
+
+            if (!response.IsValid) 
+            {
+                OnError?.Invoke(new StreamingError { Reason = response.OriginalException.Message, IsFatal = false });
+                //throw response.OriginalException;
+            } else
+                sourceToCommit?.Commit();
+        }
+
+
 
 
         public void SetSourceToCommit(IStreamSource source)
         {
             this.sourceToCommit = source;
-        }
-
-
-        private void SetupCommitTimer(Action onTimeout)
-        {
-            dumpTimer = new System.Timers.Timer(BulkTimeout.TotalMilliseconds);
-            dumpTimer.Elapsed += (sender, eventArgs) =>
-            {
-                onTimeout.Invoke();
-            };
-            dumpTimer.AutoReset = true;
-            dumpTimer.Enabled = true;
         }
 
         //
