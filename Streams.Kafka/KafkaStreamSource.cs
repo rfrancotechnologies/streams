@@ -22,6 +22,7 @@ namespace Com.RFranco.Streams.Kafka
 
         public event Action OnEOF;
         public event Action<StreamingError> OnError;
+        public event Action<string> OnStatistics;
 
         public void Commit()
         {
@@ -36,6 +37,7 @@ namespace Com.RFranco.Streams.Kafka
             kafkaConsumerBuilder.SetKeyDeserializer(keyDeserializer);
             kafkaConsumerBuilder.SetValueDeserializer(valueDeserializer);
             kafkaConsumerBuilder.SetErrorHandler((_, e) => OnError?.Invoke(new StreamingError{ IsFatal = e.IsFatal, Reason = e.Reason }));
+            kafkaConsumerBuilder.SetStatisticsHandler((_, statistics) => OnStatistics?.Invoke(statistics));
             
             using (var kafkaConsumer = kafkaConsumerBuilder.Build())
             {

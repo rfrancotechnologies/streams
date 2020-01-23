@@ -39,6 +39,8 @@ namespace Com.RFranco.Streams.Kafka
 
         public event Action<StreamingError> OnError;
 
+        public event Action<string> OnStatistics;
+
         public void Dump(IEnumerable<T> stream, CancellationToken cancellationToken)
         {
             DumpMessages(stream, value => new Message<K, T>{ Value = value }, cancellationToken);
@@ -55,6 +57,7 @@ namespace Com.RFranco.Streams.Kafka
             producerBuilder.SetKeySerializer(keySerializer);
             producerBuilder.SetValueSerializer(valueSerializer);
             producerBuilder.SetErrorHandler((_, e) => OnError?.Invoke(new StreamingError{ IsFatal = e.IsFatal, Reason = e.Reason }));
+            producerBuilder.SetStatisticsHandler((_, statistics) => OnStatistics?.Invoke(statistics));
 
             using (var p = producerBuilder.Build())
             {
