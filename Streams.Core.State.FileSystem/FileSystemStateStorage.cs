@@ -7,7 +7,7 @@ namespace Com.RFranco.Streams.State.FileSystem
     /// <summary>
     /// State implementation based on LiteDatabase
     /// </summary>
-    public class FileSystemState<T> : State<T>
+    public class FileSystemStateStorage<T> : StateStorage<T> where T : class
     {
         /// <summary>
         /// LiteDatabase instance to store the state
@@ -15,34 +15,40 @@ namespace Com.RFranco.Streams.State.FileSystem
         private LiteDatabase Database;
 
         /// <summary>
+        /// Collection name used
+        /// </summary>
+        private string CollectionName;
+
+        /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="descriptor">State descriptor</param>
+        /// <param name="fileName">File Name of the .db file</param>
+        /// <param name="collectionName">Collection Name used</param>
         /// <returns></returns>
-        public FileSystemState(StateDescriptor<T> descriptor) : this(descriptor, new LiteDatabase(descriptor.Namespace + ".db"))
+        public FileSystemStateStorage(string fileName, string collectionName) : this(collectionName, new LiteDatabase(fileName + ".db"))
         {
         }
 
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="descriptor">State descriptor</param>
+        /// <param name="collectionName">Collection name used</param>
         /// <param name="database">LiteDabase instance</param>
         /// <returns></returns>
-        public FileSystemState(StateDescriptor<T> descriptor, LiteDatabase database) : base(descriptor)
+        public FileSystemStateStorage(string collectionName, LiteDatabase database) 
         {
+            CollectionName = collectionName;
             Database = database;
-
         }
 
         /// <summary>
         /// Return the state value
         /// </summary>
         /// <returns>State value</returns>
-        public override T Value()
+        public override T GetValue()
         {
-            if(! Database.CollectionExists(Descriptor.Name)) return Descriptor.DefaultValue;
-            return Database.GetCollection<T>(Descriptor.Name).FindAll().First();            
+            if(! Database.CollectionExists(CollectionName)) return default(T);
+            return Database.GetCollection<T>(CollectionName).FindAll().First();            
         }
 
         /// <summary>
@@ -51,7 +57,7 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// <param name="newState">The new state value</param>
         public override void Update(T newState)
         {
-            var stateCollection = Database.GetCollection<T>(Descriptor.Name);
+            var stateCollection = Database.GetCollection<T>(CollectionName);
 
             if (!stateCollection.Update(newState))
                 stateCollection.Insert(newState);
@@ -70,7 +76,7 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// </summary>
         public override void Clear()
         {
-            Database.DropCollection(Descriptor.Name);
+            Database.DropCollection(CollectionName);
         }
     }
 }
