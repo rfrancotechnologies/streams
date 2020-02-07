@@ -6,21 +6,20 @@ namespace Com.RFranco.Streams.State
 {
     /// <summary>
     /// StateStorage definition
-    /// </summary>
-    /// <typeparam name="T">Must be marked as serializable</typeparam>
-    public abstract class StateStorage<T> where T : class
+    /// </summary>    
+    public abstract class StateStorage
     {
         /// <summary>
         /// Get value
         /// </summary>
         /// <returns></returns>
-        public abstract T GetValue();
+        public abstract object GetValue();
 
         /// <summary>
         /// Update value
         /// </summary>
         /// <param name="newValue"></param>
-        public abstract void Update(T newValue);
+        public abstract void Update(object newValue);
 
         /// <summary>
         /// Close storage
@@ -37,7 +36,7 @@ namespace Com.RFranco.Streams.State
         /// </summary>
         /// <param name="obj">Object to be serialized</param>
         /// <returns>Array of bytes representation of the object</returns>
-        protected byte[] Serialize(T obj)
+        protected byte[] Serialize(object obj)
         {
             if (obj == null)
                 return null;
@@ -60,12 +59,12 @@ namespace Com.RFranco.Streams.State
         /// </summary>
         /// <param name="param">Array of bytes</param>
         /// <returns>T representation of the array of bytes</returns>
-        protected T Deserialize(byte[] param)
+        protected object Deserialize(byte[] param)
         {
             using (MemoryStream ms = new MemoryStream(param))
             {
                 BinaryFormatter br = new BinaryFormatter();
-                return br.Deserialize(ms) as T;
+                return br.Deserialize(ms) as object;
             }
         }
     }
@@ -74,12 +73,12 @@ namespace Com.RFranco.Streams.State
     /// Inmemory implementation of StateStorage
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class MemoryStateStorage<T> : StateStorage<T> where T : class
+    public class MemoryStateStorage : StateStorage
     {
-        T Value = default(T);
+        object Value = null;
         public override void Clear()
         {
-            Value = default(T);
+            Value = null;
         }
 
         public override void Close()
@@ -87,12 +86,12 @@ namespace Com.RFranco.Streams.State
             Clear();
         }
 
-        public override T GetValue()
+        public override object GetValue()
         {
             return Value;
         }
 
-        public override void Update(T newValue)
+        public override void Update(object newValue)
         {
             Value = newValue;
         }
