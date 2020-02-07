@@ -5,7 +5,7 @@ using org.apache.zookeeper;
 namespace Com.RFranco.Streams.State.Zookeeper
 {
 
-    public class ZookeeperStateStorage<T> : StateStorage<T> where T : class
+    public class ZookeeperStateStorage : StateStorage
     {
 
         /// <summary>
@@ -25,9 +25,9 @@ namespace Com.RFranco.Streams.State.Zookeeper
 
         }
 
-        public override T GetValue()
+        public override object GetValue()
         {
-            T state = default(T);
+            object state = null;
 
             try
             {
@@ -47,7 +47,7 @@ namespace Com.RFranco.Streams.State.Zookeeper
             return state;
         }
 
-        public override void Update(T newValue)
+        public override void Update(object newValue)
         {
             try
             {
