@@ -2,23 +2,24 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>0.1.1-alpha</Version>
+    <Version>1.0.0-alpha</Version>
     <PackageId>Com.RFranco.Streams.Core.State.Zookeeper</PackageId>
     <Title>Streams.Core.State.Zookeeper</Title>
     <Description>Library to manage application state using zookeeper.</Description>
     <Authors>Ruben Martinez;Javier Solana;R.Franco Techonologies</Authors>
-    <Copyright>Copyright R.Franco Techonologies 2019</Copyright>
+    <Copyright>Copyright R.Franco Techonologies 2020</Copyright>
     <PackageTags>Application State Zookeeper</PackageTags>
     <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/rfrancotechnologies/streams</PackageProjectUrl>
     <IncludeSource>false</IncludeSource>
     <PackageReleaseNotes>
-      Throw exception if the connection to the server has been lost.
+      Updated to use Stream.Core 1.0.X. State management simplification.
     </PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ZooKeeperNetEx" Version="3.4.12.1" />
-    <PackageReference Include="Com.RFranco.Streams" Version="0.1.9-alpha" />  
-  </ItemGroup>
+    <PackageReference Include="Com.RFranco.Streams" Version="1.0.0-alpha" /> 
+  </ItemGroup> 
+
 </Project>
