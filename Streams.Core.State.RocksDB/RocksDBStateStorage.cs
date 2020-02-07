@@ -8,7 +8,7 @@ namespace Com.RFranco.Streams.State.RocksDB
     /// <summary>
     /// State implementation based on RocksDBS
     /// </summary>
-    public class RocksDBStateStorage<T> : StateStorage<T> where T : class
+    public class RocksDBStateStorage : StateStorage
     {
         /// <summary>
         /// Rocks database instance
@@ -45,10 +45,10 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// Return the state value
         /// </summary>
         /// <returns></returns>
-        public override T GetValue()
+        public override object GetValue()
         {
 
-            T State = default(T);
+            object State = null;
 
             try
             {
@@ -64,7 +64,7 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// Update the state value
         /// </summary>
         /// <param name="newState">The new value of the state</param>
-        public override void Update(T newState)
+        public override void Update(object newState)
         {
             Database.Put(Key, Serialize(newState));
         }
