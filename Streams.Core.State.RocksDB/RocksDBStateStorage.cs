@@ -8,7 +8,7 @@ namespace Com.RFranco.Streams.State.RocksDB
     /// <summary>
     /// State implementation based on RocksDBS
     /// </summary>
-    public class RocksDBState<T> : State<T>
+    public class RocksDBStateStorage<T> : StateStorage<T> where T : class
     {
         /// <summary>
         /// Rocks database instance
@@ -25,7 +25,7 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// </summary>
         /// <param name="descriptor">State descriptor</param>
         /// <returns></returns>
-        public RocksDBState(StateDescriptor<T> descriptor) : this(descriptor, new DbOptions().SetCreateIfMissing(true))
+        public RocksDBStateStorage(String path, string key) : this(path, key, new DbOptions().SetCreateIfMissing(true))
         {
         }
 
@@ -35,24 +35,24 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// <param name="descriptor">State desciptor</param>
         /// <param name="options">RocksDB options</param>
         /// <returns></returns>
-        public RocksDBState(StateDescriptor<T> descriptor, DbOptions options) : base(descriptor)
+        public RocksDBStateStorage(string path, string key, DbOptions options)
         {
-            Database = RocksDb.Open(options, Descriptor.Namespace);
-            Key = Encoding.UTF8.GetBytes(Descriptor.Name);
+            Database = RocksDb.Open(options, path);
+            Key = Encoding.UTF8.GetBytes(key);
         }
 
         /// <summary>
         /// Return the state value
         /// </summary>
         /// <returns></returns>
-        public override T Value()
+        public override T GetValue()
         {
 
-            T State = Descriptor.DefaultValue;
+            T State = default(T);
 
             try
             {
-                State = Descriptor.Serializer.Deserialize(Database.Get(Key));
+                State = Deserialize(Database.Get(Key));
 
             }
             catch (Exception) { }
@@ -66,7 +66,7 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// <param name="newState">The new value of the state</param>
         public override void Update(T newState)
         {
-            Database.Put(Key, Descriptor.Serializer.Serialize(newState));
+            Database.Put(Key, Serialize(newState));
         }
 
         /// <summary>
