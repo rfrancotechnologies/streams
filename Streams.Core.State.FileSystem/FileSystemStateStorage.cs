@@ -7,7 +7,7 @@ namespace Com.RFranco.Streams.State.FileSystem
     /// <summary>
     /// State implementation based on LiteDatabase
     /// </summary>
-    public class FileSystemStateStorage<T> : StateStorage<T> where T : class
+    public class FileSystemStateStorage : StateStorage
     {
         /// <summary>
         /// LiteDatabase instance to store the state
@@ -45,19 +45,19 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// Return the state value
         /// </summary>
         /// <returns>State value</returns>
-        public override T GetValue()
+        public override object GetValue()
         {
-            if(! Database.CollectionExists(CollectionName)) return default(T);
-            return Database.GetCollection<T>(CollectionName).FindAll().First();            
+            if(! Database.CollectionExists(CollectionName)) return null;
+            return Database.GetCollection<object>(CollectionName).FindAll().First();            
         }
 
         /// <summary>
         /// Update the state value
         /// </summary>
         /// <param name="newState">The new state value</param>
-        public override void Update(T newState)
+        public override void Update(object newState)
         {
-            var stateCollection = Database.GetCollection<T>(CollectionName);
+            var stateCollection = Database.GetCollection<object>(CollectionName);
 
             if (!stateCollection.Update(newState))
                 stateCollection.Insert(newState);
