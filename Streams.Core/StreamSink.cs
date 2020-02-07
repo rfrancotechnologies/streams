@@ -12,16 +12,26 @@ namespace Com.RFranco.Streams
     {
         /// <summary>
         /// Dump the stream into the sink.
+        /// Use void Dump(IEnumerable<T> stream, Func<T, DateTimeOffset> getMessageDateTime, CancellationToken cancellationToken) 
+        /// to override the date time of the message.
         /// </summary>
         /// <param name="stream">Stream that will be dumped into the sink.</param>
         /// <param name="cancellationToken">Token that indicates that the execution must be stopped.</param>
+        
         void Dump(IEnumerable<T> stream, CancellationToken cancellationToken);
 
         /// <summary>
-        /// Indicate that this sink must explicitly commit to the given source when a batch of messages has been successfully dumped.
+        /// Dump the stream into the sink.
         /// </summary>
-        /// <param name="source">The source of messages that must be commited when a batch of messages has been successfully dumped.</param>
-        void SetSourceToCommit(IStreamSource source);
+        /// <param name="stream">Stream that will be dumped into the sink.</param>
+        /// <param name="getMessageDateTime">Function to indicate how to extract the date time of the message to be dumped.
+        /// <param name="cancellationToken">Token that indicates that the execution must be stopped.</param>
+        void Dump(IEnumerable<T> stream, Func<T, DateTimeOffset> getMessageDateTime, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// An action to invoke when the sink has been successfully dumped the messages to this point.
+        /// </summary>        
+        event Action OnCommit;
 
         /// <summary>
         /// Event invoked when an error occurs in the sink.
@@ -38,10 +48,19 @@ namespace Com.RFranco.Streams
     {
         /// <summary>
         /// Dump the stream into the sink using the key, from the provided KeyValuePair, as message key for the sink.
-        /// For instance, a Kafka message with a key or a ElasticSearch document with a specific UID.
+        /// For instance, a Kafka message with a key or a ElasticSearch document with a specific UID.        
         /// </summary>
         /// <param name="stream">Stream that will be dumped into the sink.</param>
         /// <param name="cancellationToken">Token that indicates that the execution must be stopped.</param>
         void DumpWithKey(IEnumerable<KeyValuePair<K,T>> stream, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Dump the stream into the sink using the key, from the provided KeyValuePair, as message key for the sink.
+        /// For instance, a Kafka message with a key or a ElasticSearch document with a specific UID.
+        /// </summary>
+        /// <param name="stream">Stream that will be dumped into the sink.</param>
+        /// <param name="getMessageDateTime">Function to indicate how to extract the date time of the message to be dumped.
+        /// <param name="cancellationToken">Token that indicates that the execution must be stopped.</param>
+        void DumpWithKey(IEnumerable<KeyValuePair<K,T>> stream, Func<T, DateTimeOffset> getMessageDateTime, CancellationToken cancellationToken);
     }
 }
