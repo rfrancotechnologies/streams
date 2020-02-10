@@ -15,17 +15,12 @@ namespace Com.RFranco.Streams.State.FileSystem
         private LiteDatabase Database;
 
         /// <summary>
-        /// Collection name used
-        /// </summary>
-        private string CollectionName;
-
-        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="fileName">File Name of the .db file</param>
         /// <param name="collectionName">Collection Name used</param>
         /// <returns></returns>
-        public FileSystemStateStorage(string fileName, string collectionName) : this(collectionName, new LiteDatabase(fileName + ".db"))
+        public FileSystemStateStorage(string fileName) : this(new LiteDatabase(fileName + ".db"))
         {
         }
 
@@ -35,9 +30,8 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// <param name="collectionName">Collection name used</param>
         /// <param name="database">LiteDabase instance</param>
         /// <returns></returns>
-        public FileSystemStateStorage(string collectionName, LiteDatabase database) 
+        public FileSystemStateStorage(LiteDatabase database)
         {
-            CollectionName = collectionName;
             Database = database;
         }
 
@@ -45,19 +39,21 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// Return the state value
         /// </summary>
         /// <returns>State value</returns>
-        public override object GetValue()
+        /// <param name="collectionName">Key to identify the state</param>
+        public override object GetValue(string collectionName)
         {
-            if(! Database.CollectionExists(CollectionName)) return null;
-            return Database.GetCollection<object>(CollectionName).FindAll().First();            
+            if(! Database.CollectionExists(collectionName)) return null;
+            return Database.GetCollection<object>(collectionName).FindAll().First();            
         }
 
         /// <summary>
         /// Update the state value
         /// </summary>
         /// <param name="newState">The new state value</param>
-        public override void Update(object newState)
+        /// <param name="collectionName">Key to identify the state</param>
+        public override void Update(string collectionName, object newState)
         {
-            var stateCollection = Database.GetCollection<object>(CollectionName);
+            var stateCollection = Database.GetCollection<object>(collectionName);
 
             if (!stateCollection.Update(newState))
                 stateCollection.Insert(newState);
@@ -74,9 +70,10 @@ namespace Com.RFranco.Streams.State.FileSystem
         /// <summary>
         /// Drop the collection (data and indexes) used to store the state value
         /// </summary>
-        public override void Clear()
+        /// <param name="collectionName">Key to identify the state</param>
+        public override void Clear(string collectionName)
         {
-            Database.DropCollection(CollectionName);
+            Database.DropCollection(collectionName);
         }
     }
 }

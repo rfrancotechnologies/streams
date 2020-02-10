@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 
@@ -9,17 +10,20 @@ namespace Com.RFranco.Streams.State
     /// </summary>    
     public abstract class StateStorage
     {
+        
         /// <summary>
-        /// Get value
+        /// Get value 
         /// </summary>
+        /// <param name="key"></param>
         /// <returns></returns>
-        public abstract object GetValue();
+        public abstract object GetValue(string key);
 
         /// <summary>
         /// Update value
         /// </summary>
+        /// <param name="key"></param>
         /// <param name="newValue"></param>
-        public abstract void Update(object newValue);
+        public abstract void Update(string key, object newValue);
 
         /// <summary>
         /// Close storage
@@ -29,7 +33,8 @@ namespace Com.RFranco.Streams.State
         /// <summary>
         /// Clear value 
         /// </summary>
-        public abstract void Clear();
+        /// <param name="key"></param>
+        public abstract void Clear(string key);
 
         /// <summary>
         /// Serialize object (must be marked as Serializable or throw InvalidOperationException)
@@ -75,23 +80,34 @@ namespace Com.RFranco.Streams.State
     /// <typeparam name="T"></typeparam>
     public class MemoryStateStorage : StateStorage
     {
-        object Value = null;
-        public override void Clear()
+        internal ConcurrentDictionary<string, object> Values;
+
+        public MemoryStateStorage() 
         {
-            Value = null;
+            Values = new ConcurrentDictionary<string, object>();            
+        }
+
+        object Value = null;
+        public override void Clear(string key)
+        {
+            object value = null;
+            Values.TryRemove(key, out value);
         }
 
         public override void Close()
         {
-            Clear();
+            Values = null;
+
         }
 
-        public override object GetValue()
+        public override object GetValue(string key)
         {
-            return Value;
+            object value = null;
+            Values.TryGetValue(key, out value);
+            return value;
         }
 
-        public override void Update(object newValue)
+        public override void Update(string key, object newValue)
         {
             Value = newValue;
         }

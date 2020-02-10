@@ -16,16 +16,11 @@ namespace Com.RFranco.Streams.State.RocksDB
         private RocksDb Database;
 
         /// <summary>
-        /// Key used to store the state value
-        /// </summary>
-        private byte[] Key;
-
-        /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="descriptor">State descriptor</param>
         /// <returns></returns>
-        public RocksDBStateStorage(String path, string key) : this(path, key, new DbOptions().SetCreateIfMissing(true))
+        public RocksDBStateStorage(String path) : this(path, new DbOptions().SetCreateIfMissing(true))
         {
         }
 
@@ -35,24 +30,24 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// <param name="descriptor">State desciptor</param>
         /// <param name="options">RocksDB options</param>
         /// <returns></returns>
-        public RocksDBStateStorage(string path, string key, DbOptions options)
+        public RocksDBStateStorage(string path, DbOptions options)
         {
-            Database = RocksDb.Open(options, path);
-            Key = Encoding.UTF8.GetBytes(key);
+            Database = RocksDb.Open(options, path);            
         }
 
         /// <summary>
         /// Return the state value
         /// </summary>
+        /// <param name="key">Key to identify the state</param>
         /// <returns></returns>
-        public override object GetValue()
+        public override object GetValue(string key)
         {
 
             object State = null;
 
             try
             {
-                State = Deserialize(Database.Get(Key));
+                State = Deserialize(Database.Get(Encoding.UTF8.GetBytes(key)));
 
             }
             catch (Exception) { }
@@ -63,10 +58,11 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// <summary>
         /// Update the state value
         /// </summary>
+        /// <param name="key">Key to identify the state</param>
         /// <param name="newState">The new value of the state</param>
-        public override void Update(object newState)
+        public override void Update(string key, object newState)
         {
-            Database.Put(Key, Serialize(newState));
+            Database.Put(Encoding.UTF8.GetBytes(key), Serialize(newState));
         }
 
         /// <summary>
@@ -80,9 +76,10 @@ namespace Com.RFranco.Streams.State.RocksDB
         /// <summary>
         /// Clear the key / value used  to store the state
         /// </summary>
-        public override void Clear()
+        /// <param name="key">Key to identify the state</param>
+        public override void Clear(string key)
         {
-            Database.Remove(Key);
+            Database.Remove(Encoding.UTF8.GetBytes(key));
         }
     }
 }

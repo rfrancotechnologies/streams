@@ -41,28 +41,10 @@ namespace Com.RFranco.Streams.State.Zookeeper
         /// <value></value>
         public int SessionTimeoutMilliseconds { get; set; }
 
-        /// <summary>
-        /// Namespace path
-        /// </summary>
-        /// <value></value>
-        public string Namespace { get; set; }
-
-        /// <summary>
-        /// Name path
-        /// </summary>
-        /// <value></value>
-        public string Name {get;set;}
-
-        public string GetPath()
-        {
-            return $"/{Namespace}/{Name}";
-        }
-
         public override string ToString()
         {
             return "{\"ConnectionString\": " + ConnectionString
-                + ",\"SessionTimeout\": " + SessionTimeoutMilliseconds.ToString() 
-                + ",\"Path\": " + GetPath()
+                + ",\"SessionTimeout\": " + SessionTimeoutMilliseconds.ToString()                 
                 + "}";
         }
 

@@ -13,25 +13,23 @@ namespace Com.RFranco.Streams.State.Zookeeper
         /// </summary>
         private ZooKeeper ZooKeeperClient;
 
-        /// <summary>
-        /// Zookeeper node path
-        /// </summary>
-        private string Path;
-
         public ZookeeperStateStorage(ZookeeperClientOptions options)
         {
-            ZooKeeperClient = new ZooKeeper(options.ConnectionString, options.SessionTimeoutMilliseconds, new ZooKeeperWatcher());
-            Path = options.GetPath();
-
+            ZooKeeperClient = new ZooKeeper(options.ConnectionString, options.SessionTimeoutMilliseconds, new ZooKeeperWatcher());            
         }
 
-        public override object GetValue()
+        /// <summary>
+        /// Get the value of the state
+        /// </summary>
+        /// <param name="key">Key to identify the state. Must start with / </param>
+        /// <returns></returns>
+        public override object GetValue(string key)
         {
             object state = null;
 
             try
             {
-                var readTask = ZooKeeperClient.getDataAsync(Path, true);
+                var readTask = ZooKeeperClient.getDataAsync(key, true);
                 readTask.Wait();
                 state = Deserialize(readTask.Result.Data);
             }
@@ -47,25 +45,34 @@ namespace Com.RFranco.Streams.State.Zookeeper
             return state;
         }
 
-        public override void Update(object newValue)
+        /// <summary>
+        /// Update the state
+        /// </summary>
+        /// <param name="key">Key to identify the state. Must start with / </param>
+        /// <param name="newValue"></param>
+        public override void Update(string key, object newValue)
         {
             try
             {
-                ZooKeeperClient.setDataAsync(Path, Serialize(newValue)).Wait();
+                ZooKeeperClient.setDataAsync(key, Serialize(newValue)).Wait();
             }
             catch (AggregateException ex)
             {
                 KeeperException keeperException = ex.InnerException as KeeperException;
                 if (keeperException != null && keeperException.getCode() == KeeperException.Code.NONODE)
                 {
-                    CreateIfNotExist(Path, Serialize(newValue));
+                    CreateIfNotExist(key, Serialize(newValue));
                 }
             }
         }
 
-        public override void Clear()
+        /// <summary>
+        /// Clear the state
+        /// </summary>
+        /// <param name="key">Key to identify the state. Must start with / </param>
+        public override void Clear(string key)
         {
-            ZooKeeperClient.deleteAsync(Path).Wait();
+            ZooKeeperClient.deleteAsync(key).Wait();
         }
 
         public override void Close()
