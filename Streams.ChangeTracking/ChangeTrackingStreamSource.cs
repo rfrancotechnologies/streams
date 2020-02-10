@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.Threading;
 using Com.Rfranco.Streams.ChangeTracking.Config;
@@ -8,7 +7,9 @@ using Com.Rfranco.Streams.ChangeTracking.Exceptions;
 using Com.Rfranco.Streams.ChangeTracking.Models;
 using Com.RFranco.Streams;
 using Com.RFranco.Streams.State;
-using System.Data.SqlClient;
+using Com.Rfranco.Streams.ChangeTracking.Repositories;
+using System.Data;
+using System.Linq;
 
 namespace Com.Rfranco.Streams.ChangeTracking
 {
@@ -18,21 +19,10 @@ namespace Com.Rfranco.Streams.ChangeTracking
     /// </summary>
     public class ChangeTrackingStreamSource : IStreamSource<Change>
     {
-
-        /// <summary>
-        /// Default changetracking state namespace
-        /// </summary>
-        private readonly string APPLICATION_OFFSET_STATE_NAMESPACE = "changetracking";
-
         /// <summary>
         /// Action to be performed when EOF event is detected
         /// </summary>
         public event Action OnEOF;
-
-        /// <summary>
-        /// Flag to detect if EOF action has been already performed or not
-        /// </summary>
-        private bool EOFActionAlreadyThrown = false;
 
         /// <summary>
         /// Action to be performed when and error is detected
@@ -40,42 +30,25 @@ namespace Com.Rfranco.Streams.ChangeTracking
         public event Action<StreamingError> OnError;
 
         /// <summary>
-        /// ChangeTracking configuration
+        /// Engine
         /// </summary>
-        private ChangeTrackingConfiguration Configuration;
+        private IChangeTrackingRepository Repository;
 
         /// <summary>
-        /// Change tracking manager instance
+        /// Context handler
         /// </summary>
-        private IChangeTrackingManager ChangeTrackingManager;
+        private ChangeTrackingContextHandler ContextHandler;
 
         /// <summary>
-        /// Changetracking state factory to create or retrieve the state related
+        /// Polling interval defined
         /// </summary>
-        private StateBackend<long?> ChangeTrackingStateFactory;
-
-        /// <summary>
-        /// Changetracking state
-        /// </summary>
-        private State<long?> ChangeTrackingState;
-
-        /// <summary>
-        /// State of database
-        /// </summary>
-        private long DatabaseOffset;
-
-        /// <summary>
-        /// Check if  initial status is not commited yet
-        /// </summary>
-        private bool IsPendingCommitInitial = false;
+        private TimeSpan PollingInterval;
 
         /// <summary>
         /// Change tracking stream constructor
         /// </summary>
         /// <param name="configuration">Changetracking configuration</param>
-        /// <typeparam name="long?"></typeparam>
-        /// <returns></returns>
-        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration) : this(configuration, new MemoryStateBackend<long?>())
+        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration) : this(configuration, new MemoryStateStorage())
         {
         }
 
@@ -83,24 +56,12 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// Change tracking stream constructor
         /// </summary>
         /// <param name="configuration">Change tracking configuration</param>
-        /// <param name="stateBackend">ChangeTracking state factory</param>
-        /// <returns></returns>
-        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration, StateBackend<long?> stateBackend) : this(configuration, stateBackend, new ChangeTrackingManager(configuration))
+        /// <param name="stateStorage">Change tracking state storage</param>
+        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration, StateStorage stateStorage)
         {
-        }
-
-        /// <summary>
-        /// Change tracking stream constructor
-        /// </summary>
-        /// <param name="configuration">Change tracking configuration</param>
-        /// <param name="changeTrackingEngine">Change tracking engine instance</param>
-        /// <param name="stateBackend">Change tracking state factory</param>
-        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration, StateBackend<long?> stateBackend, IChangeTrackingManager changeTrackingEngine)
-        {
-            this.Configuration = configuration;
-            this.ChangeTrackingManager = changeTrackingEngine;
-            this.ChangeTrackingStateFactory = stateBackend;
-            this.ChangeTrackingState = stateBackend.GetOrCreateState(new StateDescriptor<long?>(APPLICATION_OFFSET_STATE_NAMESPACE, configuration.ApplicationName, Serializers.NullableLongSerializer, null));
+            this.Repository = new ChangeTrackingRepository(configuration);
+            this.PollingInterval = TimeSpan.FromMilliseconds(configuration.PollIntervalMilliseconds);
+            this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage);            
         }
 
         /// <summary>
@@ -110,45 +71,46 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// <returns>IEnumerable of messages of type Change</returns>
         public IEnumerable<Change> Stream(CancellationToken cancellationToken)
         {
-            IDbConnection conn = null;
-            TimeSpan pollingInterval = TimeSpan.FromMilliseconds(Configuration.PollIntervalMilliseconds);
             Stopwatch processTime = Stopwatch.StartNew();
             IEnumerable<Change> changes = null;
             TimeSpan delay = TimeSpan.FromSeconds(0);
-            long? ApplicationOffset = GetApplicationOffsetValue();
+            bool alreadyInvokeEOF = false;
+
+            try
+            {
+                ContextHandler.InitContext();
+            }
+            catch (Exception ex)
+            {
+                OnError?.Invoke(new StreamingError { IsFatal = true, Reason = ex.Message });
+            }
             
+
             while (!cancellationToken.IsCancellationRequested)
             {
-                processTime.Restart();
-
-                if (!IsPendingCommitInitial)
+                using (var conn = Repository.CreateConnection())
                 {
                     try
                     {
-                        conn = CreateConnection();
+                        changes = null;
 
-                        DatabaseOffset = ChangeTrackingManager.GetDatabaseOffset(conn);
-
-                        if (!ApplicationOffset.HasValue || DatabaseOffset > ApplicationOffset)
+                        ContextHandler.UpdateDatabaseOffset(Repository.GetDatabaseOffset(conn));
+                        if (ContextHandler.HasChanges())
                         {
-                            changes = ChangeTrackingManager.GetChanges(conn, ApplicationOffset);
-                            EOFActionAlreadyThrown = false;
+                            changes = GetChanges(conn, ContextHandler);
+                            alreadyInvokeEOF = false;
                         }
-                        else
+                        else if (ContextHandler.isEOF() && !alreadyInvokeEOF)
                         {
-                            if (!EOFActionAlreadyThrown)
-                            {
-                                OnEOF?.Invoke();
-                                EOFActionAlreadyThrown = true;
-                                changes = null;
-                                Commit();
-                            }
+                            OnEOF?.Invoke();
+                            alreadyInvokeEOF = true;
                         }
                     }
                     catch (Exception cte)
                     {
                         OnError?.Invoke(new StreamingError { IsFatal = cte is ChangeTrackingException, Reason = cte.Message });
-                        changes = null;
+                        ContextHandler.RegisterError();
+
                         delay = delay.Add(TimeSpan.FromSeconds(5));
                         if (delay > TimeSpan.FromSeconds(15))
                             delay = TimeSpan.FromSeconds(15);
@@ -157,31 +119,24 @@ namespace Com.Rfranco.Streams.ChangeTracking
                     if (null != changes)
                     {
                         foreach (var change in changes)
-                        {
-                            if (change.IsInitial())
-                            {
-                                IsPendingCommitInitial = true;
-                            }
+                            yield return change;
 
-                            yield return change;                            
-                        }
-                        
-                        ApplicationOffset = DatabaseOffset;
                         delay = TimeSpan.FromSeconds(0);
+                        
+                        ContextHandler.UpdateApplicationOffset();                        
                     }
-
-                    if (conn != null) conn.Dispose();
                 }
 
                 processTime.Stop();
 
-                var sleep = (delay + pollingInterval) - processTime.Elapsed;
+                var sleep = (delay + PollingInterval) - processTime.Elapsed;
                 if (sleep.TotalMilliseconds > 0)
                     Thread.Sleep(sleep);
 
+                processTime.Restart();
             }
 
-            ChangeTrackingState.Close();
+            ContextHandler.Dispose();
         }
 
         /// <summary>
@@ -189,44 +144,61 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// </summary>
         public void Commit()
         {
-            ChangeTrackingState.Update(DatabaseOffset);
-            IsPendingCommitInitial = false;
+            ContextHandler.Commit();   
         }
 
         /// <summary>
-        /// Get current offset
+        /// Get context handler
         /// </summary>
-        /// <returns>Current offset</returns>
-        public long GetCurrentOffset()
+        /// <returns>Returns context handler</returns>
+        public ChangeTrackingContextHandler GetContextHandler()
         {
-            return DatabaseOffset;
+            return ContextHandler;
         }
 
         /// <summary>
-        /// Create a Database connection
+        /// Read and process all the table changes from the provided tables.
+        /// 
+        /// Table changes are first read from lower priority to higher priority tables, and subsequently processed
+        /// from higher priority tables to lower priority ones. This is made in order to prevent processing changes 
+        /// from dependent entities that haven't yet been processed (keeping consistency with dependent entities and
+        /// the generated events). 
+        /// For instance, assuming we are processing player wallets and player wallet transactions (wallets have higher
+        /// priority than transactions), to prevent reading player wallet transactions from wallets that have not yet been
+        /// read we first read changes in player wallet transactions, then we read changes in wallets, then we process the
+        /// changes in wallets and finally we process the change in transactions.
         /// </summary>
-        /// <returns>Database connection</returns>
-        private IDbConnection CreateConnection()
+        /// <param name="conn">The database connection.</param>
+        /// <param name="ChangeTrackingContextHandler">Context handler</param>
+        private IEnumerable<Change> GetChanges(IDbConnection conn, ChangeTrackingContextHandler contextHandler)
         {
-            SqlConnection connection = new SqlConnection(Configuration.ConnectionString);
-            if (connection.State != ConnectionState.Open)
-                connection.Open();
-            return connection;
-        }       
+            Stack<IEnumerable<Change>> tableChanges = new Stack<IEnumerable<Change>>();
+            IEnumerable<TrackedTableInformation> changeTrackingTableInfos = Repository.GetTrackedTablesInformation(conn);
+            var currentApplicationOffset = contextHandler.GetContext().ApplicationOffset;
+            foreach (var changeTrackingTableInfo in changeTrackingTableInfos.OrderBy(x => x.Priority))
+            {
+                if (contextHandler.IsMinimalOffsetSupported(changeTrackingTableInfo.MinValidVersion))
+                {
+                    throw new ChangeTrackingException($"Received a minimal offset supported {changeTrackingTableInfo.MinValidVersion}"
+                    + $" higher than the last processed {currentApplicationOffset} for {changeTrackingTableInfo.GetFullTableName()} table");
+                }
+                else
+                {
+                    var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset);
+                    tableChanges.Push(changes);
+                    ContextHandler.RegisterPendingChanges(changes.Count());
+                }
+            }
 
-        private long? GetApplicationOffsetValue()
-        {
-            long? applicationOffset = null;
-            try
+            while (tableChanges.Any())
             {
-                applicationOffset = ChangeTrackingState.Value();
+                foreach (var change in tableChanges.Pop())
+                {
+                    yield return change;
+                    ContextHandler.RegisterPendingChanges(-1);
+                }
             }
-            catch (Exception ex)
-            {
-                OnError?.Invoke(new StreamingError { IsFatal = true, Reason = ex.Message });
-            }
-            
-            return applicationOffset;
         }
+
     }
 }

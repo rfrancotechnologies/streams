@@ -30,19 +30,7 @@ namespace Com.Rfranco.Streams.ChangeTracking.Config
         /// </summary>
         /// <value>ChangeTrackingTableConfiguration instance white table configured</value>
         public IEnumerable<ChangeTrackingTableConfiguration> WhiteListTables { get; set; }
-
-        public override string ToString()
-        {
-            string whiteTables = string.Empty;
-            foreach (var whiteListTable in WhiteListTables)
-            {
-                if (!"".Equals(whiteTables)) whiteTables += ",";
-                whiteTables += whiteListTable.ToString();
-            }
-
-            return "{\"ConnectionString\": " + ConnectionString + ",\"ApplicationName\": " + ApplicationName + ",\"PollIntervalMilliseconds\": "
-            + PollIntervalMilliseconds + ",\"WhiteListTables\": [" + whiteTables + "]}";
-        }
+        
     }
 
     /// <summary>
@@ -68,9 +56,5 @@ namespace Com.Rfranco.Streams.ChangeTracking.Config
         /// <value>Priority (high value to lower value)</value>
         public int Priority { get; set; } = 1;
 
-        public override string ToString()
-        {
-            return "{\"FullName\": " + FullName + ",\"PrimaryKeyColumn\": " + PrimaryKeyColumn + ",\"Priority\": " + Priority + "}";
-        }
     }
 }
