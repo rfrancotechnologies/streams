@@ -89,7 +89,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
                 LastChangeTrackingEvent = ChangeTrackingEvent.INIT
             };
 
-            //  Notify();
+            Notify();
         }
 
         public ChangeTrackingContext GetContext()
@@ -114,7 +114,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
             {
                 Context.DatabaseOffset = newDatabaseOffset;
                 Context.LastChangeTrackingEvent = ChangeTrackingEvent.DATABASEOFFSET_UPDATED;
-                //Notify()
+                Notify();
             }
         }
 
