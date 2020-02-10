@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Version>1.0.0-alpha</Version>
+    <PackageId>Com.RFranco.Streams.Core.State.Redis</PackageId>
+    <Title>Streams.Core.State.Redis</Title>
+    <Description>Library to manage application state using Redis.</Description>
+    <Authors>Ruben Martinez;Javier Solana;R.Franco Techonologies</Authors>
+    <Copyright>Copyright R.Franco Techonologies 2020</Copyright>
+    <PackageTags>Application State Redis</PackageTags>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rfrancotechnologies/streams</PackageProjectUrl>
+    <IncludeSource>false</IncludeSource>
+    <PackageReleaseNotes>
+      First Version
+    </PackageReleaseNotes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StackExchange.Redis" Version="2.0.571"/>
+    <PackageReference Include="Com.RFranco.Streams" Version="1.0.0-alpha1" />    
+  </ItemGroup>    
+</Project>
