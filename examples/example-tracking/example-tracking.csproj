@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <Version>1.0.0$(VersionSuffix)</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Com.RFranco.Streams.ChangeTracking" Version="1.0.0-alpha1" />
+    <PackageReference Include="Com.RFranco.Streams.Core.State.Redis" Version="1.0.0-alpha1" />
+  </ItemGroup>  
+  <ItemGroup>
+    <None Update="config.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="log4net.config" CopyToOutputDirectory="PreserveNewest" />    
+  </ItemGroup>
+</Project>
