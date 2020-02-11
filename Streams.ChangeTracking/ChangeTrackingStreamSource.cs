@@ -47,21 +47,13 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// <summary>
         /// Change tracking stream constructor
         /// </summary>
-        /// <param name="configuration">Changetracking configuration</param>
-        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration) : this(configuration, new MemoryStateStorage())
-        {
-        }
-
-        /// <summary>
-        /// Change tracking stream constructor
-        /// </summary>
         /// <param name="configuration">Change tracking configuration</param>
         /// <param name="stateStorage">Change tracking state storage</param>
-        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration, StateStorage stateStorage)
+        public ChangeTrackingStreamSource(ChangeTrackingConfiguration configuration, StateStorage stateStorage = null)
         {
             this.Repository = new ChangeTrackingRepository(configuration);
             this.PollingInterval = TimeSpan.FromMilliseconds(configuration.PollIntervalMilliseconds);
-            this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage);            
+            this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage ?? new MemoryStateStorage());            
         }
 
         /// <summary>
