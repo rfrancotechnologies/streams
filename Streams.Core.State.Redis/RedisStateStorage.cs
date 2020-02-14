@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using StackExchange.Redis;
 
 namespace Com.RFranco.Streams.State.Redis
@@ -16,7 +17,7 @@ namespace Com.RFranco.Streams.State.Redis
         public RedisStateStorage(RedisConfiguration redisConfiguration)
         {
             RedisConfiguration = redisConfiguration;
-            Redis =  new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(redisConfiguration.Nodes));
+            Redis =  new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(redisConfiguration.Nodes), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>
