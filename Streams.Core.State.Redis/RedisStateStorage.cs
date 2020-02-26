@@ -11,13 +11,13 @@ namespace Com.RFranco.Streams.State.Redis
     public class RedisStateStorage : StateStorage
     {
         private readonly Lazy<ConnectionMultiplexer> Redis;
-        
+
         private readonly RedisConfiguration RedisConfiguration;
 
         public RedisStateStorage(RedisConfiguration redisConfiguration)
         {
             RedisConfiguration = redisConfiguration;
-            Redis =  new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(redisConfiguration.Nodes), LazyThreadSafetyMode.PublicationOnly);
+            Redis = new Lazy<ConnectionMultiplexer>(() => ConnectionMultiplexer.Connect(redisConfiguration.Nodes), LazyThreadSafetyMode.PublicationOnly);
         }
 
         /// <summary>
@@ -29,8 +29,17 @@ namespace Com.RFranco.Streams.State.Redis
         {
             IDatabase db = Redis.Value.GetDatabase();
             var state = db.StringGet(key);
-            if(state.IsNull) return null;
-            else  return Deserialize(state);
+            if (state.IsNull) return null;
+            else
+                try
+                {
+                    return Deserialize(state);
+                }
+                catch (Exception)
+                {
+                    return state.ToString();
+                }
+
         }
 
         /// <summary>
@@ -42,9 +51,12 @@ namespace Com.RFranco.Streams.State.Redis
         {
             IDatabase db = Redis.Value.GetDatabase();
             TimeSpan? expiration = null;
-            if(RedisConfiguration.TTL > 0 )
+            if (RedisConfiguration.TTL > 0)
                 expiration = TimeSpan.FromSeconds(RedisConfiguration.TTL);
-            db.StringSet(key, Serialize(newState), expiry: expiration);
+            if (newState.GetType().IsPrimitive)
+                db.StringSet(key, newState.ToString() , expiry: expiration);
+            else
+                db.StringSet(key, Serialize(newState), expiry: expiration);
         }
 
         /// <summary>
