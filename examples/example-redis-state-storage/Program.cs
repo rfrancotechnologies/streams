@@ -8,59 +8,32 @@ namespace Com.RFranco.Example.Streams.State.Redis
     {
         static void Main(string[] args)
         {
+            string key = "changetracking-PlayerChangeStatusTracking";
             //  Requires a redis
             var redisStorage = new RedisStateStorage(new RedisConfiguration
             {
-                Nodes = "localhost:6379",
-                //TTL = 24*60*60*1000,
-                Key = "testState1"
+                Nodes = "localhost:6379"
             });
 
             Console.WriteLine("Checking previous state (it must be null)");
-            var state = redisStorage.GetValue();
-            if (state != null) throw new Exception($"Invalid state founded: {state.ToString()}");
+            var state = redisStorage.GetValue(key);
+            //if (state != null) throw new Exception($"Invalid state founded: {state.ToString()}");
 
-            state = new DummyState()
+            state = new DummyState
             {
-                Description = "New description",
-                Offset = 1,
-                Type = Kind.PUBLIC,
-                Items = new List<Item> { new Item { Code = "AA", Amount = 200.10 }, new Item { Code = "BB", Amount = 0 } }
+                Description = "Description",
+                Offset = 100
             };
 
-            redisStorage.Update(state);
-            state = redisStorage.GetValue();
-            Console.WriteLine($"state {state.ToString()}");
+            redisStorage.Update(key, state);
+            var state2 = redisStorage.GetValue(key);
+            Console.WriteLine($"state {state2.ToString()}");
 
-            redisStorage.Clear();
-            state = redisStorage.GetValue();
-            if (state != null) throw new Exception($"Invalid state founded: {state.ToString()}");
-
-            redisStorage.Close();
-
-            var redisStorage2 = new RedisStateStorage(new RedisConfiguration
-            {
-                Nodes = "localhost:6379",
-                TTL = 1,
-                Key = "testState2"
-            });
-            Console.WriteLine("Checking previous state (it must be null)");
-            long? state2 = redisStorage2.GetValue() as long?;
+            redisStorage.Clear(key);
+            state2 = redisStorage.GetValue(key);
             if (state2 != null) throw new Exception($"Invalid state founded: {state2.ToString()}");
 
-            state2 = 12;
-
-            redisStorage2.Update(state2.Value);
-            Console.WriteLine($"state {redisStorage2.GetValue()}");
-
-            state2 = redisStorage2.GetValue() as long?;
-
-            redisStorage2.Clear();
-            state = redisStorage2.GetValue();
-            if (state != null) throw new Exception($"Invalid state founded: {state2.ToString()}");
-
             redisStorage.Close();
-
 
         }
     }
