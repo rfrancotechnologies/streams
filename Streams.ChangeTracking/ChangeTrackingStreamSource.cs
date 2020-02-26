@@ -53,7 +53,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
         {
             this.Repository = new ChangeTrackingRepository(configuration);
             this.PollingInterval = TimeSpan.FromMilliseconds(configuration.PollIntervalMilliseconds);
-            this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage ?? new MemoryStateStorage());            
+            this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage ?? new MemoryStateStorage());
         }
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
             {
                 OnError?.Invoke(new StreamingError { IsFatal = true, Reason = ex.Message });
             }
-            
+
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -110,12 +110,17 @@ namespace Com.Rfranco.Streams.ChangeTracking
 
                     if (null != changes)
                     {
+                        bool mustSync = false;
                         foreach (var change in changes)
-                            yield return change;
+                            if(change.ChangeOperation.Equals(ChangeOperationEnum.SYNC))
+                                mustSync = true;
+                            else
+                                yield return change;
 
                         delay = TimeSpan.FromSeconds(0);
-                        
-                        ContextHandler.UpdateApplicationOffset();                        
+
+                        ContextHandler.UpdateApplicationOffset();
+                        if(mustSync) Commit();
                     }
                 }
 
@@ -136,7 +141,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// </summary>
         public void Commit()
         {
-            ContextHandler.Commit();   
+            ContextHandler.Commit();
         }
 
         /// <summary>
@@ -177,19 +182,28 @@ namespace Com.Rfranco.Streams.ChangeTracking
                 else
                 {
                     var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset);
-                    tableChanges.Push(changes);
-                    ContextHandler.RegisterPendingChanges(changes.Count());
+                    if(changes.Count() != 0)
+                    {
+                        tableChanges.Push(changes);
+                        ContextHandler.RegisterPendingChanges(changes.Count());
+                    }
                 }
             }
 
-            while (tableChanges.Any())
+            if (!tableChanges.Any())
+                yield return new Change {}; //  SYNC
+            else
             {
-                foreach (var change in tableChanges.Pop())
+                while (tableChanges.Any())
                 {
-                    yield return change;
-                    ContextHandler.RegisterPendingChanges(-1);
+                    foreach (var change in tableChanges.Pop())
+                    {
+                        yield return change;
+                        ContextHandler.RegisterPendingChanges(-1);
+                    }
                 }
             }
+
         }
 
     }

@@ -5,7 +5,7 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
 
     public enum ChangeOperationEnum
     {
-        INSERT, UPDATE, DELETE
+        INSERT, UPDATE, DELETE, SYNC
     }
 
     /// <summary>
@@ -21,6 +21,7 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
         {
             get
             {
+                if (null == _ChangeOperation) return ChangeOperationEnum.SYNC;
                 switch (_ChangeOperation)
                 {
                     case "D": return ChangeOperationEnum.DELETE;
