@@ -84,7 +84,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
         {
             Context = new ChangeTrackingContext()
             {
-                ApplicationOffset = Storage.GetValue(GetKey()) as long? ?? 0,
+                ApplicationOffset = Convert.ToInt64(Storage.GetValue(GetKey())),
                 StartDateTimeOffset = DateTimeOffset.UtcNow,
                 LastChangeTrackingEvent = ChangeTrackingEvent.INIT
             };
