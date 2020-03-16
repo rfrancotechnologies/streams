@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Com.Rfranco.Streams.ChangeTracking.Models;
 using Com.RFranco.Streams.State;
 using static Com.Rfranco.Streams.ChangeTracking.ChangeTrackingContext;
 
@@ -19,11 +20,14 @@ namespace Com.Rfranco.Streams.ChangeTracking
             PENDINGCHANGES_UPDATED,
             ERRORS_UPDATED,
             COMMITTED,
-            EOF
+            EOF,
+            MIN_OFFSET_SUPPORTED_HIGHER
         }
 
         public long DatabaseOffset { get; internal set; } = 0;
         public long ApplicationOffset { get; internal set; } = 0;
+
+        public long MinimalOffsetSupported { get; internal set; } = 0;
         public long NumberOfCommits { get; internal set; } = 0;
         public long NumberOfErrors { get; internal set; } = 0;
         public long PendingChanges { get; internal set; } = 0;
@@ -129,7 +133,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
         {
             Context.NumberOfErrors++;
             Context.LastChangeTrackingEvent = ChangeTrackingEvent.ERRORS_UPDATED;
-            //Notify()
+            //Notify();
         }
 
         internal void RegisterPendingChanges(long numberOfNewChanges)
@@ -156,14 +160,22 @@ namespace Com.Rfranco.Streams.ChangeTracking
             return true;
         }
 
-        internal bool IsMinimalOffsetSupported(long minValidVersion)
+        internal bool IsMinimalOffsetSupportedHigher(long minValidVersion)
         {
-            return Context.ApplicationOffset != 0 && Context.ApplicationOffset < minValidVersion;
+            Context.MinimalOffsetSupported = minValidVersion;            
+            bool isMinOffsetHigher = Context.ApplicationOffset != 0 && Context.ApplicationOffset < minValidVersion;
+
+            if(isMinOffsetHigher)
+            {
+                Context.LastChangeTrackingEvent = ChangeTrackingEvent.MIN_OFFSET_SUPPORTED_HIGHER;
+                Notify();
+            }
+            return isMinOffsetHigher;
         }
 
         private string GetKey()
         {
-            return $"{NAMESPACE_TRACKING}-{ApplicationName}";
+            return $"{NAMESPACE_TRACKING}-{ApplicationName}";   //TODO use : instead of -
         }
     }
 

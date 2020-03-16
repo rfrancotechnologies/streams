@@ -174,12 +174,7 @@ namespace Com.Rfranco.Streams.ChangeTracking
             var currentApplicationOffset = contextHandler.GetContext().ApplicationOffset;
             foreach (var changeTrackingTableInfo in changeTrackingTableInfos.OrderBy(x => x.Priority))
             {
-                if (contextHandler.IsMinimalOffsetSupported(changeTrackingTableInfo.MinValidVersion))
-                {
-                    throw new ChangeTrackingException($"Received a minimal offset supported {changeTrackingTableInfo.MinValidVersion}"
-                    + $" higher than the last processed {currentApplicationOffset} for {changeTrackingTableInfo.GetFullTableName()} table");
-                }
-                else
+                if (!contextHandler.IsMinimalOffsetSupportedHigher(changeTrackingTableInfo.MinValidVersion))                
                 {
                     var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset);
                     if(changes.Count() != 0)
