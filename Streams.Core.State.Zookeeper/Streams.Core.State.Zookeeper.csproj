@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
-    <Version>1.0.0-alpha2</Version>
+    <Version>1.0.0</Version>
     <PackageId>Com.RFranco.Streams.Core.State.Zookeeper</PackageId>
     <Title>Streams.Core.State.Zookeeper</Title>
     <Description>Library to manage application state using zookeeper.</Description>
@@ -13,13 +13,13 @@
     <PackageProjectUrl>https://github.com/rfrancotechnologies/streams</PackageProjectUrl>
     <IncludeSource>false</IncludeSource>
     <PackageReleaseNotes>
-      Allow one to many relationship between states and storage.
+      Release 1.0.0
     </PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="ZooKeeperNetEx" Version="3.4.12.1" />
-    <PackageReference Include="Com.RFranco.Streams" Version="1.0.0-alpha3" /> 
+    <PackageReference Include="Com.RFranco.Streams" Version="1.0.0" /> 
   </ItemGroup> 
 
 </Project>

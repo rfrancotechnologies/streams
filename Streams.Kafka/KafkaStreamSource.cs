@@ -66,7 +66,7 @@ namespace Com.RFranco.Streams.Kafka
                     }
 
                     if (consumedResult?.Message != null)
-                        yield return consumedResult.Value;
+                        yield return consumedResult.Message.Value;
                 }
 
                 // Gracefully close the consumer, liberating the group offsets, etc.
