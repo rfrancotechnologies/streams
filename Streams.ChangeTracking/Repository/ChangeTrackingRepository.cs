@@ -21,7 +21,8 @@ namespace Com.Rfranco.Streams.ChangeTracking.Repositories
 
         IEnumerable<TrackedTableInformation> GetTrackedTablesInformation(IDbConnection conn);
 
-        IEnumerable<Change> GetOffsetChanges(IDbConnection conn, TrackedTableInformation changeTrackingTableInfo, long offset);
+        IEnumerable<Change> GetOffsetChanges(IDbConnection conn, TrackedTableInformation changeTrackingTableInfo, 
+            long changeVersionFrom, long changeVersionTo);
     }
 
     public class ChangeTrackingRepository : IChangeTrackingRepository
@@ -95,14 +96,17 @@ namespace Com.Rfranco.Streams.ChangeTracking.Repositories
         /// <param name="changeTrackingTableInfo">Tracked table information</param>
         /// <param name="offset">Current offset</param>
         /// <returns>Changes since offset provided</returns>
-        public IEnumerable<Change> GetOffsetChanges(IDbConnection conn, TrackedTableInformation changeTrackingTableInfo, long offset)
+        public IEnumerable<Change> GetOffsetChanges(IDbConnection conn, TrackedTableInformation changeTrackingTableInfo, 
+            long changeVersionFrom, long changeVersionTo)
         {
             return conn.Query<Change>(
-                $"SELECT CT.{changeTrackingTableInfo.PrimaryKeyColumn} AS PrimaryKeyValue,"
-                + $"'{changeTrackingTableInfo.GetFullTableName()}' AS TableFullName,"
-                + "SYS_CHANGE_OPERATION AS _ChangeOperation,"
-                + "SYS_CHANGE_VERSION AS ChangeVersion"
-                + $" FROM  CHANGETABLE(CHANGES {changeTrackingTableInfo.GetFullTableName()} , {offset}) AS CT Order by CT.{changeTrackingTableInfo.PrimaryKeyColumn} ASC")
+                $"SELECT CT.{changeTrackingTableInfo.PrimaryKeyColumn} AS PrimaryKeyValue, "
+                + $"'{changeTrackingTableInfo.GetFullTableName()}' AS TableFullName, "
+                + "SYS_CHANGE_OPERATION AS _ChangeOperation, "
+                + "SYS_CHANGE_VERSION AS ChangeVersion "
+                + $"FROM  CHANGETABLE(CHANGES {changeTrackingTableInfo.GetFullTableName()} , {changeVersionFrom}) AS CT "
+                + $"WHERE SYS_CHANGE_VERSION <= {changeVersionTo} "
+                + $"Order by CT.{changeTrackingTableInfo.PrimaryKeyColumn} ASC")
                 .Distinct();
         }
     }

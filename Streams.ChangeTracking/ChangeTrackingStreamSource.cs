@@ -171,12 +171,15 @@ namespace Com.Rfranco.Streams.ChangeTracking
         {
             Stack<IEnumerable<Change>> tableChanges = new Stack<IEnumerable<Change>>();
             IEnumerable<TrackedTableInformation> changeTrackingTableInfos = Repository.GetTrackedTablesInformation(conn);
+            
             var currentApplicationOffset = contextHandler.GetContext().ApplicationOffset;
+            var dbOffset = contextHandler.GetContext().DatabaseOffset;
+
             foreach (var changeTrackingTableInfo in changeTrackingTableInfos.OrderBy(x => x.Priority))
             {
                 if (!contextHandler.IsMinimalOffsetSupportedHigher(changeTrackingTableInfo.MinValidVersion))                
                 {
-                    var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset);
+                    var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset, dbOffset);
                     if(changes.Count() != 0)
                     {
                         tableChanges.Push(changes);
