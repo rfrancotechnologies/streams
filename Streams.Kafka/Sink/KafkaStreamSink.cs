@@ -5,7 +5,7 @@ using System.Threading;
 using Confluent.Kafka;
 using Polly;
 
-namespace Com.RFranco.Streams.Kafka
+namespace Com.RFranco.Streams.Kafka.Sink
 {
     /// <summary>
     /// A Kakfa sink, that allows to specify message keys.
