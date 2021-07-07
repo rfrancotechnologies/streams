@@ -10,15 +10,21 @@ using Com.RFranco.Streams.State;
 using Com.Rfranco.Streams.ChangeTracking.Repositories;
 using System.Data;
 using System.Linq;
+using Com.Rfranco.Streams.ChangeTracking.Context;
 
-namespace Com.Rfranco.Streams.ChangeTracking
+namespace Com.Rfranco.Streams.ChangeTracking.Source
 {
-
     /// <summary>
     /// Changetracking stream source implementation
     /// </summary>
-    public class ChangeTrackingStreamSource : IStreamSource<Change>
+    public class ChangeTrackingStreamSource : IChangeTrackingStreamSource
     {
+        /// <summary>
+        /// Enable/Disable the stream source commit of the published messages.
+        /// </summary>
+        public bool CommitEnable { get; set; } = true;
+        private long? InitialChangeTable {get; set;}
+        
         /// <summary>
         /// Action to be performed when EOF event is detected
         /// </summary>
@@ -70,13 +76,15 @@ namespace Com.Rfranco.Streams.ChangeTracking
 
             try
             {
-                ContextHandler.InitContext();
+                if(CommitEnable)
+                    ContextHandler.InitContext();
+                else
+                    ContextHandler.InitContext(InitialChangeTable == null ? 0 : (long)InitialChangeTable);
             }
             catch (Exception ex)
             {
                 OnError?.Invoke(new StreamingError { IsFatal = true, Reason = ex.Message });
             }
-
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -120,7 +128,8 @@ namespace Com.Rfranco.Streams.ChangeTracking
                         delay = TimeSpan.FromSeconds(0);
 
                         ContextHandler.UpdateApplicationOffset();
-                        if(mustSync) Commit();
+                        if(mustSync && CommitEnable)
+                            Commit();
                     }
                 }
 
@@ -141,7 +150,8 @@ namespace Com.Rfranco.Streams.ChangeTracking
         /// </summary>
         public void Commit()
         {
-            ContextHandler.Commit();
+            if(CommitEnable)
+                ContextHandler.Commit();
         }
 
         /// <summary>
@@ -204,5 +214,13 @@ namespace Com.Rfranco.Streams.ChangeTracking
 
         }
 
+        public void SetInitialChangeTable(long initialChangeTable)
+        {
+            if(CommitEnable)
+                throw new ArgumentException("The Initial Change Table can not been setted if " +
+                    "'CommitEnable' property was setted to true.");
+
+            InitialChangeTable = initialChangeTable;
+        }
     }
 }

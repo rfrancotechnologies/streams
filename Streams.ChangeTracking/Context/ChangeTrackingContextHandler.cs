@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Generic;
-using Com.Rfranco.Streams.ChangeTracking.Models;
 using Com.RFranco.Streams.State;
-using static Com.Rfranco.Streams.ChangeTracking.ChangeTrackingContext;
+using static Com.Rfranco.Streams.ChangeTracking.Context.ChangeTrackingContext;
 
-namespace Com.Rfranco.Streams.ChangeTracking
+namespace Com.Rfranco.Streams.ChangeTracking.Context
 {
     /// <summary>
     /// Change tracking Context
     /// </summary>
     public class ChangeTrackingContext
     {
-
         public enum ChangeTrackingEvent
         {
             INIT,
@@ -35,12 +33,10 @@ namespace Com.Rfranco.Streams.ChangeTracking
         public DateTimeOffset StartDateTimeOffset { get; internal set; }
         public DateTimeOffset LastCommitDateTimeOffset { get; internal set; }
         public ChangeTrackingEvent LastChangeTrackingEvent { get; internal set; }
-
     }
 
     public class ChangeTrackingContextHandler : IObservable<ChangeTrackingContext>, IDisposable
     {
-
         private static string NAMESPACE_TRACKING = "changetracking";
 
         private List<IObserver<ChangeTrackingContext>> Observers;
@@ -67,8 +63,6 @@ namespace Com.Rfranco.Streams.ChangeTracking
             return new Unsubscriber<ChangeTrackingContext>(Observers, observer);
         }
 
-
-
         public void Dispose()
         {
             foreach (var observer in Observers)
@@ -94,6 +88,15 @@ namespace Com.Rfranco.Streams.ChangeTracking
             };
 
             Notify();
+        }
+        public void InitContext(long initialApplicationOffset)
+        {
+            Context = new ChangeTrackingContext()
+            {
+                ApplicationOffset = initialApplicationOffset,
+                StartDateTimeOffset = DateTimeOffset.UtcNow,
+                LastChangeTrackingEvent = ChangeTrackingEvent.INIT
+            };
         }
 
         public ChangeTrackingContext GetContext()
