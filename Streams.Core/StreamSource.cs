@@ -34,6 +34,11 @@ namespace Com.RFranco.Streams
     public interface IStreamSource<T>: IStreamSource
     {
         /// <summary>
+        /// Enable/Disable the stream source commit of the published messages.
+        /// </summary>
+        bool CommitEnable {get; set;}
+        
+        /// <summary>
         /// Retrieves the stream of messages from the source.
         /// </summary>
         /// <returns>IEnuerable of messages of type T.</returns>
