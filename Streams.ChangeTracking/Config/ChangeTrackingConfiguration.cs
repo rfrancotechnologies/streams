@@ -26,11 +26,16 @@ namespace Com.Rfranco.Streams.ChangeTracking.Config
         public long PollIntervalMilliseconds { get; set; }
 
         /// <summary>
+        /// Enable/Disable a custom sort based on specific column of each table
+        /// </summary>
+        /// <value>bool to enable or disable the custom sort</value>
+        public bool CustomSortEnable { get; set; } = false;
+
+        /// <summary>
         /// IEnumerable with information related to the tables configured with change tracking
         /// </summary>
         /// <value>ChangeTrackingTableConfiguration instance white table configured</value>
         public IEnumerable<ChangeTrackingTableConfiguration> WhiteListTables { get; set; }
-        
     }
 
     /// <summary>
@@ -56,5 +61,10 @@ namespace Com.Rfranco.Streams.ChangeTracking.Config
         /// <value>Priority (high value to lower value)</value>
         public int Priority { get; set; } = 1;
 
+        /// <summary>
+        /// Column of the track table to sort results by
+        /// </summary>
+        /// <value>Column to sort by</value>
+        public string SortColumn { get; set; }
     }
 }

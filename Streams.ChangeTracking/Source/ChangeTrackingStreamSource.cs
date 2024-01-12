@@ -50,6 +50,8 @@ namespace Com.Rfranco.Streams.ChangeTracking.Source
         /// </summary>
         private TimeSpan PollingInterval;
 
+        private ChangeTrackingConfiguration changeTrackingConfig;
+
         /// <summary>
         /// Change tracking stream constructor
         /// </summary>
@@ -60,6 +62,7 @@ namespace Com.Rfranco.Streams.ChangeTracking.Source
             this.Repository = new ChangeTrackingRepository(configuration);
             this.PollingInterval = TimeSpan.FromMilliseconds(configuration.PollIntervalMilliseconds);
             this.ContextHandler = new ChangeTrackingContextHandler(configuration.ApplicationName, stateStorage ?? new MemoryStateStorage());
+            changeTrackingConfig = configuration;
         }
 
         /// <summary>
@@ -179,8 +182,8 @@ namespace Com.Rfranco.Streams.ChangeTracking.Source
         /// <param name="ChangeTrackingContextHandler">Context handler</param>
         private IEnumerable<Change> GetChanges(IDbConnection conn, ChangeTrackingContextHandler contextHandler)
         {
-            Stack<IEnumerable<Change>> tableChanges = new Stack<IEnumerable<Change>>();
-            IEnumerable<TrackedTableInformation> changeTrackingTableInfos = Repository.GetTrackedTablesInformation(conn);
+            var tableChanges = new List<Change>();
+            var changeTrackingTableInfos = Repository.GetTrackedTablesInformation(conn);
             
             var currentApplicationOffset = contextHandler.GetContext().ApplicationOffset;
             var dbOffset = contextHandler.GetContext().DatabaseOffset;
@@ -192,26 +195,25 @@ namespace Com.Rfranco.Streams.ChangeTracking.Source
                     var changes = Repository.GetOffsetChanges(conn, changeTrackingTableInfo, currentApplicationOffset, dbOffset);
                     if(changes.Count() != 0)
                     {
-                        tableChanges.Push(changes);
+                        tableChanges.AddRange(changes);
                         ContextHandler.RegisterPendingChanges(changes.Count());
                     }
                 }
             }
 
+            if(changeTrackingConfig.CustomSortEnable)
+                tableChanges.Sort((x,y) => y.CompareTo(x));
+
             if (!tableChanges.Any())
                 yield return new Change {}; //  SYNC
             else
             {
-                while (tableChanges.Any())
+                for(int i=tableChanges.Count-1; i>=0; i--)
                 {
-                    foreach (var change in tableChanges.Pop())
-                    {
-                        yield return change;
-                        ContextHandler.RegisterPendingChanges(-1);
-                    }
+                    yield return tableChanges[i];
+                    tableChanges.RemoveAt(i);
                 }
             }
-
         }
 
         public void SetInitialChangeTable(long initialChangeTable)

@@ -10,6 +10,8 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
 
         public string PrimaryKeyColumn { get; set; }
 
+        public string SortColumn { get; set;}
+
         public int Priority { get; set; }
 
         public long MinValidVersion { get; set; }

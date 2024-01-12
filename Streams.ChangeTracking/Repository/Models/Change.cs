@@ -11,7 +11,7 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
     /// <summary>
     /// Change information
     /// </summary>
-    public class Change : IEquatable<Change>
+    public class Change : IEquatable<Change>, IComparable
     {
         public string PrimaryKeyValue { get; set; }
 
@@ -35,6 +35,8 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
 
         public long ChangeVersion { get; set; }
 
+        public dynamic SortColumn { get; set; }
+
         public bool Equals(Change other)
         {
             if (Object.ReferenceEquals(other, null)) return false;
@@ -50,6 +52,19 @@ namespace Com.Rfranco.Streams.ChangeTracking.Models
             int hashChangeOperation = _ChangeOperation.GetHashCode();
 
             return hashPrimaryKeyValue ^ hashChangeOperation;
+        }
+
+        public int CompareTo(object o)
+        {
+            var other = o as Change;
+            if(!SortColumn.GetType().Equals(other.SortColumn.GetType()))
+                throw new ArgumentException("The SortColumn of all tables should be of the same SQL type");
+
+            if(typeof(IComparable).IsAssignableFrom(SortColumn.GetType()))
+                return SortColumn.CompareTo(other.SortColumn);
+
+            throw new ArgumentException("The SortColumn type not implements the 'CompareTo' method. " + 
+                "An expecific comparer for this data type shold be implemented.");
         }
     }
 }
